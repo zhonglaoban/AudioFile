@@ -1,147 +1,109 @@
-## Audio Unit 实现音频播放功能
-![播放音频流程图](https://upload-images.jianshu.io/upload_images/3277096-be98158ce42211bb.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+CoreAudio中和读写音频文件有关的有`ExtAudioFile`和`AudioFile`，这里介绍`ExtAudioFile`读写音频文件的相关API和操作。
 
-使用Audio Unit播放音频的时候，我们使用一个`I/O Unit`就可以完成了，整体步骤和录制时差不多，具体如下：
-1. 设置好AudioComponentDescription，确定我们使用的Audio Unit类型
-2. 获取Audio Unit实例，我们有两种获取方式，通过AUGraph获取，通过AudioComponent获取。
-3. 设置Audio Unit的属性，告诉系统我们需要使用Audio Unit的哪些功能以及需要采集什么样的数据。
-4. 开始播放和停止播放。
-5. 从回调函数中将音频数据传给播放器。
+## 基础知识介绍
+### 音频数据格式
+`pcm`、`aac`、`opus`等，代表音频的原始数据，是音频的数字信号。
+### 文件格式
+`aif`、`caf`、`mp3`等，文件存储可以压缩数据进行存储如`mp3`，其中caf是指Core Audio Format，里面可以存储所CoreAudio支持的数据格式。
 
-### 初始化
+## 读文件
+读文件分为3步：
+1. 打开文件
+2. 读取数据
+3. 关闭文件
+
+### 打开文件
+`ExtAudioFile`可以直接设置音频数据格式（`ClientDataFormat`），如果有不同的采样率、数据类型等，它会自动帮我们完成格式转换的过程。
 ```objc
-- (instancetype)initWithAsbd:(AudioStreamBasicDescription)asbd {
-    self = [super init];
-    if (self) {
-        _asbd = asbd;
-        _queue = dispatch_queue_create("zf.audioPlayer", DISPATCH_QUEUE_SERIAL);
-        [self setupDescription];
-        [self getAudioUnits];
-        [self setupAudioUnits];
-    }
-    return self;
+- (void)openFile:(NSString *)filePath format:(AudioStreamBasicDescription *)format {
+CFURLRef cfurl = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)filePath, kCFURLPOSIXPathStyle, false);
+
+_dataFormat = format;
+
+// 打开文件
+OSStatus result = ExtAudioFileOpenURL(cfurl, &_fileId);
+printf("ExtAudioFileOpenURL result %d \n", result);
+
+// 读取文件格式
+UInt32 propSize = sizeof(AudioStreamBasicDescription);
+result = ExtAudioFileGetProperty(_fileId, kExtAudioFileProperty_FileDataFormat, &propSize, &_fileFormat);
+printf("get absd: %d \n", result);
+
+// 设置音频数据格式
+propSize = sizeof(AudioStreamBasicDescription);
+result = ExtAudioFileSetProperty(_fileId, kExtAudioFileProperty_ClientDataFormat, propSize, _dataFormat);
+printf("set absd: %d \n", result);
+}
+```
+### 读取数据
+将数据读到`AudioBufferList`里面，`inNumberFrames`表示音频帧数。
+```objc
+- (void)readData:(void *)data length:(int)length {
+AudioBufferList ioData = {};
+AudioBuffer buffer = {};
+buffer.mData = data;
+buffer.mDataByteSize = length;
+buffer.mNumberChannels = _dataFormat->mChannelsPerFrame;
+
+ioData.mBuffers[0] = buffer;
+ioData.mNumberBuffers = 1;
+
+UInt32 inNumberFrames = length / _dataFormat->mBytesPerFrame;
+
+OSStatus result = ExtAudioFileRead(_fileId, &inNumberFrames, &ioData);
+printf("ExtAudioFileRead %d \n", result);
+}
+```
+### 关闭文件
+使用完需要关闭文件，这是一个好习惯。
+```objc
+- (void)closeFile {
+ExtAudioFileDispose(_fileId);
 }
 ```
 
-### 设置AudioComponentDescription
+## 写文件
+写文件也有3步：
+1. 创建文件
+需要按文件的类型创建文件。
 ```objc
-- (void)setupAcd {
-    _ioUnitDesc.componentType = kAudioUnitType_Output;
-    //vpio模式
-    _ioUnitDesc.componentSubType = kAudioUnitSubType_VoiceProcessingIO;
-    _ioUnitDesc.componentManufacturer = kAudioUnitManufacturer_Apple;
-    _ioUnitDesc.componentFlags = 0;
-    _ioUnitDesc.componentFlagsMask = 0;
+- (void)createFile:(NSString *)filePath type:(AudioFileTypeID)type format:(AudioStreamBasicDescription *)format {
+CFURLRef cfurl = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)filePath, kCFURLPOSIXPathStyle, false);
+
+_dataFormat = format;
+
+// 创建文件
+OSStatus result = ExtAudioFileCreateWithURL(cfurl, type, format, NULL, kAudioFileFlags_EraseFile, &_fileId);
+printf("ExtAudioFileCreateWithURL result %d \n", result);
+
+// 设置音频数据格式
+UInt32 propSize = sizeof(AudioStreamBasicDescription);
+result = ExtAudioFileSetProperty(_fileId, kExtAudioFileProperty_ClientDataFormat, propSize, _dataFormat);
+printf("set absd: %d \n", result);
 }
 ```
-
-### 获取Audio Unit实例
-通过AUGraph获取实例
+2. 写入数据
+写入有两个函数`ExtAudioFileWriteAsync`和`ExtAudioFileWrite`，看名字就知道了，一个是非阻塞的，一个是阻塞的，非阻塞的在关闭文件的时候会写完数据。
 ```objc
-- (void)getAudioUnits {
-    OSStatus status = NewAUGraph(&_graph);
-    printf("create graph %d \n", (int)status);
+- (void)writeData:(void *)data length:(int)length {
+AudioBufferList ioData = {};
+AudioBuffer buffer = {};
+buffer.mData = data;
+buffer.mDataByteSize = length;
+buffer.mNumberChannels = _dataFormat->mChannelsPerFrame;
 
-    AUNode ioNode;
-    status = AUGraphAddNode(_graph, &_ioUnitDesc, &ioNode);
-    printf("add ioNote %d \n", (int)status);
+ioData.mBuffers[0] = buffer;
+ioData.mNumberBuffers = 1;
 
-    //instantiate the audio units
-    status = AUGraphOpen(_graph);
-    printf("open graph %d \n", (int)status);
+UInt32 inNumberFrames = length / _dataFormat->mBytesPerFrame;
 
-    //obtain references to the audio unit instances
-    status = AUGraphNodeInfo(_graph, ioNode, NULL, &_ioUnit);
-    printf("get ioUnit %d \n", (int)status);
+OSStatus result = ExtAudioFileWriteAsync(_fileId, inNumberFrames, &ioData);
+printf("ExtAudioFileWriteAsync %d \n", result);
 }
 ```
-通过AudioComponent获取实例
+3. 关闭文件
 ```objc
-- (void)createInputUnit {
-    AudioComponent comp = AudioComponentFindNext(NULL, &_ioUnitDesc);
-    if (comp == NULL) {
-    printf("can't get AudioComponent");
-    }
-    OSStatus status = AudioComponentInstanceNew(comp, &(_ioUnit));
-    printf("creat audio unit %d \n", (int)status);
+- (void)closeFile {
+ExtAudioFileDispose(_fileId);
 }
 ```
-### 设置Audio Unit属性
-```objc
-- (void)setupAudioUnits {
-    OSStatus status;
-    //设置io输入格式
-    status = AudioUnitSetProperty(_ioUnit,
-    kAudioUnitProperty_StreamFormat,
-    kAudioUnitScope_Input,
-    0,
-    &_asbd,
-    sizeof(_asbd));
-    CheckError(status, "set ioUnit StreamFormat");
-
-    NSTimeInterval bufferDuration = kSampleTime;
-    NSError *error;
-    [[AVAudioSession sharedInstance] setPreferredIOBufferDuration:bufferDuration error:&error];
-
-    //设置输入回调
-    AURenderCallbackStruct rcbs;
-    rcbs.inputProc = &InputRenderCallback;
-    rcbs.inputProcRefCon = (__bridge void *_Nullable)(self);
-    status =  AudioUnitSetProperty(_ioUnit,
-    kAudioUnitProperty_SetRenderCallback,
-    kAudioUnitScope_Input,
-    0,
-    &rcbs,
-    sizeof(rcbs));
-    CheckError(status, "set render callback");
-}
-```
-### 开始播放
-注释的部分是不使用AUGraph的方式。
-```objc
-- (void)startRecord {
-    dispatch_async(_queue, ^{
-        OSStatus status;
-        //  status = AudioUnitInitialize(self.ioUnit);
-        //  printf("AudioUnitInitialize %d \n", (int)status);
-        //  status = AudioOutputUnitStart(self.ioUnit);
-        //  printf("AudioOutputUnitStart %d \n", (int)status);
-
-        status = AUGraphInitialize(self.graph);
-        printf("AUGraphInitialize %d \n", (int)status);
-        status = AUGraphStart(self.graph);
-        printf("AUGraphStart %d \n", (int)status);
-    });
-}
-```
-
-### 停止播放
-```objc
-- (void)stopRecord {
-    dispatch_async(_queue, ^{
-        OSStatus status;
-        status = AUGraphStop(self.graph);
-        printf("AUGraphStop %d \n", (int)status);
-    });
-}
-```
-
-### 回调中AURenderCallback填充数据
-```objc
-static OSStatus InputRenderCallback(void *inRefCon,
-                                    AudioUnitRenderActionFlags *ioActionFlags,
-                                    const AudioTimeStamp *inTimeStamp,
-                                    UInt32 inBusNumber,
-                                    UInt32 inNumberFrames,
-                                    AudioBufferList *ioData) {
-    ZFAudioUnitPlayer *player = (__bridge ZFAudioUnitPlayer *)inRefCon;
-
-    [player.dataSource readDataToBuffer:ioData length:inNumberFrames];
-
-    return noErr;
-}
-```
-dataSource，从其他地方获取数据。这里是从文件中读取的数据，使用的是`ExtAudioFile`相关的API。
-
-ExtAudioFile的使用-[简书地址](https://www.jianshu.com/p/03491bf9bd0b)
-完整代码请到我的Github中下载-[项目地址](https://github.com/zhonglaoban/AudioUnitRecorder.git)
