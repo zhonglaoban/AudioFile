@@ -14,7 +14,6 @@
 		456E430A238517B3004F5D1B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 456E4308238517B3004F5D1B /* LaunchScreen.storyboard */; };
 		456E430D238517B3004F5D1B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 456E430C238517B3004F5D1B /* main.m */; };
 		4574E2BE23D1ABC600C2A3F5 /* DrumsMonoSTP.aif in Resources */ = {isa = PBXBuildFile; fileRef = 4574E2BD23D1ABC600C2A3F5 /* DrumsMonoSTP.aif */; };
-		45892B3C254C516000C949A2 /* ZFAudioFileManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 45892B3B254C516000C949A2 /* ZFAudioFileManager.m */; };
 		45E90D50254DABE500E39AB6 /* ZFAudioFileReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 45E90D4F254DABE500E39AB6 /* ZFAudioFileReader.m */; };
 		45E90D54254DABF200E39AB6 /* ZFAudioFileWriter.m in Sources */ = {isa = PBXBuildFile; fileRef = 45E90D53254DABF200E39AB6 /* ZFAudioFileWriter.m */; };
 /* End PBXBuildFile section */
@@ -31,8 +30,6 @@
 		456E430B238517B3004F5D1B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		456E430C238517B3004F5D1B /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		4574E2BD23D1ABC600C2A3F5 /* DrumsMonoSTP.aif */ = {isa = PBXFileReference; lastKnownFileType = file; path = DrumsMonoSTP.aif; sourceTree = "<group>"; };
-		45892B3A254C516000C949A2 /* ZFAudioFileManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZFAudioFileManager.h; sourceTree = "<group>"; };
-		45892B3B254C516000C949A2 /* ZFAudioFileManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZFAudioFileManager.m; sourceTree = "<group>"; };
 		45E90D4E254DABE500E39AB6 /* ZFAudioFileReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZFAudioFileReader.h; sourceTree = "<group>"; };
 		45E90D4F254DABE500E39AB6 /* ZFAudioFileReader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZFAudioFileReader.m; sourceTree = "<group>"; };
 		45E90D52254DABF200E39AB6 /* ZFAudioFileWriter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZFAudioFileWriter.h; sourceTree = "<group>"; };
@@ -79,8 +76,6 @@
 				456E4308238517B3004F5D1B /* LaunchScreen.storyboard */,
 				456E430B238517B3004F5D1B /* Info.plist */,
 				456E430C238517B3004F5D1B /* main.m */,
-				45892B3A254C516000C949A2 /* ZFAudioFileManager.h */,
-				45892B3B254C516000C949A2 /* ZFAudioFileManager.m */,
 				45E90D4E254DABE500E39AB6 /* ZFAudioFileReader.h */,
 				45E90D4F254DABE500E39AB6 /* ZFAudioFileReader.m */,
 				45E90D52254DABF200E39AB6 /* ZFAudioFileWriter.h */,
@@ -161,7 +156,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				456E4302238517B2004F5D1B /* ViewController.m in Sources */,
-				45892B3C254C516000C949A2 /* ZFAudioFileManager.m in Sources */,
 				456E42FC238517B2004F5D1B /* AppDelegate.m in Sources */,
 				45E90D50254DABE500E39AB6 /* ZFAudioFileReader.m in Sources */,
 				456E430D238517B3004F5D1B /* main.m in Sources */,
