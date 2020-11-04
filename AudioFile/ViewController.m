@@ -13,9 +13,6 @@
 
 @interface ViewController ()
 
-@property (nonatomic) AudioStreamBasicDescription inputFormat;
-@property (nonatomic) AudioStreamBasicDescription outputFormat;
-
 @property (nonatomic, strong) ZFAudioFileReader *fileReader;
 @property (nonatomic, strong) ZFAudioFileWriter *fileWriter;
 
@@ -34,16 +31,15 @@
 -(void)readAndWriteFile {
     NSString *source1 = [[NSBundle mainBundle] pathForResource:@"DrumsMonoSTP" ofType:@"aif"];
     NSString *source2 = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).lastObject stringByAppendingPathComponent:@"a.caf"];
-    if ([[NSFileManager defaultManager] fileExistsAtPath:source2]) {
-        [[NSFileManager defaultManager] createFileAtPath:source2 contents:nil attributes:nil];
-    }
+    
     NSLog(@"source1: %@", source1);
     NSLog(@"source2: %@", source2);
+    
     int length = 100000;
     void *buffer = malloc(length);
     AudioStreamBasicDescription dataFormat = {};
     dataFormat.mFormatID = kAudioFormatLinearPCM;
-    dataFormat.mSampleRate = 44100;
+    dataFormat.mSampleRate = 16000;
     dataFormat.mChannelsPerFrame = 1;
     dataFormat.mBitsPerChannel = 16;
     dataFormat.mBytesPerPacket = 1 * sizeof(SInt16);

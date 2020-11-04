@@ -28,6 +28,8 @@
     OSStatus result = ExtAudioFileCreateWithURL(cfurl, type, format, NULL, kAudioFileFlags_EraseFile, &_fileId);
     printf("ExtAudioFileCreateWithURL result %d \n", result);
     
+    CFRelease(cfurl);
+    
     // 设置音频数据格式
     UInt32 propSize = sizeof(AudioStreamBasicDescription);
     result = ExtAudioFileSetProperty(_fileId, kExtAudioFileProperty_ClientDataFormat, propSize, _dataFormat);

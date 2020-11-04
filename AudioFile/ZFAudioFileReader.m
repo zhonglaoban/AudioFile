@@ -28,6 +28,8 @@
     OSStatus result = ExtAudioFileOpenURL(cfurl, &_fileId);
     printf("ExtAudioFileOpenURL result %d \n", result);
     
+    CFRelease(cfurl);
+    
     // 读取文件格式
     UInt32 propSize = sizeof(AudioStreamBasicDescription);
     result = ExtAudioFileGetProperty(_fileId, kExtAudioFileProperty_FileDataFormat, &propSize, &_fileFormat);
